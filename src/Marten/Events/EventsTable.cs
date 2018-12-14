@@ -20,6 +20,9 @@ namespace Marten.Events
             AddColumn<TenantIdColumn>();
             AddColumn(new DotNetTypeColumn { Directive = "NULL" });
 
+            var tableColumn = AddColumn("metadata", "jsonb");
+            tableColumn.CanAdd = true;
+
             if (events.TenancyStyle == TenancyStyle.Conjoined)
             {
                 Constraints.Add($"FOREIGN KEY(stream_id, {TenantIdColumn.Name}) REFERENCES {events.DatabaseSchemaName}.mt_streams(id, {TenantIdColumn.Name})");

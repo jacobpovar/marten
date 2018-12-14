@@ -35,6 +35,7 @@ namespace Marten.Events
             var sprocCall = toAppendSprocCall(batch, stream, streamTypeName, ids, eventTypes, dotnetTypes);
 
             AddJsonBodies(batch, sprocCall, events);
+            AddMetadataBodies(batch, sprocCall, events);
         }
 
         private SprocCall toAppendSprocCall(UpdateBatch batch, EventStream stream, string streamTypeName, Guid[] ids, string[] eventTypes, string[] dotnetTypes)
@@ -77,6 +78,28 @@ namespace Marten.Events
                 sprocCall.JsonBodies("bodies", events.Select(x => serializer.ToJson(x.Data)).ToArray());
             }
         }
+        
+        static void AddMetadataBodies(UpdateBatch batch, SprocCall sprocCall, IEvent[] events)
+        {
+            var serializer = batch.Serializer;
+
+            if (batch.UseCharBufferPooling)
+            {
+                var segments = new ArraySegment<char>[events.Length];
+                
+                for (var i = 0; i < events.Length; i++)
+                {
+                    segments[i] = SerializeToCharArraySegment(batch, serializer, events[i].MetaData);
+                }
+                
+                sprocCall.JsonBodies("metadataBodies", segments);
+            }
+            else
+            {
+                sprocCall.JsonBodies("metadataBodies", events.Select(x => serializer.ToJson(x.MetaData)).ToArray());
+            }
+        }
+
 
         private static ArraySegment<char> SerializeToCharArraySegment(UpdateBatch batch, ISerializer serializer, object data)
         {

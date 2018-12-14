@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Baseline;
 using Marten.Events.Projections;
 
@@ -38,6 +39,8 @@ namespace Marten.Events
         /// If using multi-tenancy by tenant id
         /// </summary>
         string TenantId { get; set; }
+
+        Dictionary<string, object> MetaData { get; set; }
 
         void Apply<TAggregate>(TAggregate state, IAggregator<TAggregate> aggregator)
             where TAggregate : class, new();
@@ -90,6 +93,8 @@ namespace Marten.Events
         /// The UTC time that this event was originally captured
         /// </summary>
         public DateTimeOffset Timestamp { get; set; }
+
+        public Dictionary<string, object> MetaData { get; set; }
 
         public string TenantId { get; set; }
         // ENDSAMPLE

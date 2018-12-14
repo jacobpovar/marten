@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Marten.Schema;
 using Marten.Services;
 using Marten.Storage;
 using Marten.Util;
+using Newtonsoft.Json;
 using Npgsql;
 
 namespace Marten.Events
@@ -83,12 +85,13 @@ namespace Marten.Events
             }
 
             var dataJson = await reader.As<NpgsqlDataReader>().GetTextReaderAsync(3).ConfigureAwait(false);
-            var data = TypeExtensions.As<object>(_serializer.FromJson(mapping.DocumentType, dataJson));
+            var data = _serializer.FromJson(mapping.DocumentType, dataJson).As<object>();
 
             var sequence = await reader.GetFieldValueAsync<long>(4, token).ConfigureAwait(false);
             var stream = await reader.GetFieldValueAsync<string>(5, token).ConfigureAwait(false);
             var timestamp = await reader.GetFieldValueAsync<object>(6, token).ConfigureAwait(false);
             var tenantId = await reader.GetFieldValueAsync<string>(7, token).ConfigureAwait(false);
+            var metadata = await reader.GetFieldValueAsync<string>(9, token).ConfigureAwait(false);
 
             var @event = EventStream.ToEvent(data);
             @event.Version = version;
@@ -97,18 +100,23 @@ namespace Marten.Events
             @event.StreamKey = stream;
             @event.Timestamp = timestamp.MapToDateTimeOffset();
             @event.TenantId = tenantId;
+            @event.MetaData = JsonConvert.DeserializeObject<Dictionary<string, object>>(metadata, new JsonSerializerSettings()
+            {
+                TypeNameHandling = TypeNameHandling.All,
+                MetadataPropertyHandling = MetadataPropertyHandling.ReadAhead
+            });
 
             return @event;
         }
 
         public string[] SelectFields()
         {
-            return new[] { "id", "type", "version", "data", "seq_id", "stream_id", "timestamp", TenantIdColumn.Name, DocumentMapping.DotNetTypeColumn };
+            return new[] { "id", "type", "version", "data", "seq_id", "stream_id", "timestamp", TenantIdColumn.Name, DocumentMapping.DotNetTypeColumn, "metadata" };
         }
 
         public void WriteSelectClause(CommandBuilder sql, IQueryableDocument mapping)
         {
-            sql.Append($"select id, type, version, data, seq_id, stream_id, timestamp, tenant_id, {DocumentMapping.DotNetTypeColumn} from ");
+            sql.Append($"select id, type, version, data, seq_id, stream_id, timestamp, tenant_id, {DocumentMapping.DotNetTypeColumn}, metadata from ");
             sql.Append(Events.DatabaseSchemaName);
             sql.Append(".mt_events as d");
         }

@@ -20,7 +20,21 @@ namespace Marten.Events
         /// </summary>
         /// <param name="stream"></param>
         /// <param name="events"></param>
+        EventStream Append(Guid stream, params EventWithMetadata[] events);
+
+        /// <summary>
+        /// Append one or more events in order to an existing stream
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="events"></param>
         EventStream Append(string stream, params object[] events);
+
+        /// <summary>
+        /// Append one or more events in order to an existing stream
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="events"></param>
+        EventStream Append(string stream, params EventWithMetadata[] events);
 
         /// <summary>
         /// Append one or more events in order to an existing stream and verify that maximum event id for the stream
@@ -38,7 +52,25 @@ namespace Marten.Events
         /// <param name="stream"></param>
         /// <param name="expectedVersion">Expected maximum event version after append</param>
         /// <param name="events"></param>
+        EventStream Append(Guid stream, int expectedVersion, params EventWithMetadata[] events);
+
+        /// <summary>
+        /// Append one or more events in order to an existing stream and verify that maximum event id for the stream
+        /// matches supplied expected version or transaction is aborted.
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="expectedVersion">Expected maximum event version after append</param>
+        /// <param name="events"></param>
         EventStream Append(string stream, int expectedVersion, params object[] events);
+
+        /// <summary>
+        /// Append one or more events in order to an existing stream and verify that maximum event id for the stream
+        /// matches supplied expected version or transaction is aborted.
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="expectedVersion">Expected maximum event version after append</param>
+        /// <param name="events"></param>
+        EventStream Append(string stream, int expectedVersion, params EventWithMetadata[] events);
 
         /// <summary>
         /// Creates a new event stream based on a user-supplied Guid and appends the events in order to the new stream
@@ -51,6 +83,15 @@ namespace Marten.Events
 
         /// <summary>
         /// Creates a new event stream based on a user-supplied Guid and appends the events in order to the new stream
+        /// </summary>
+        /// <typeparam name="TAggregate"></typeparam>
+        /// <param name="id"></param>
+        /// <param name="events"></param>
+        /// <returns></returns>
+        EventStream StartStream<TAggregate>(Guid id, params EventWithMetadata[] events) where TAggregate : class, new();
+
+        /// <summary>
+        /// Creates a new event stream based on a user-supplied Guid and appends the events in order to the new stream
         ///  - WILL THROW AN EXCEPTION IF THE STREAM ALREADY EXISTS
         /// </summary>
         /// <typeparam name="TAggregate"></typeparam>
@@ -58,6 +99,16 @@ namespace Marten.Events
         /// <param name="events"></param>
         /// <returns></returns>
         EventStream StartStream<TAggregate>(string streamKey, params object[] events) where TAggregate : class, new();
+
+        /// <summary>
+        /// Creates a new event stream based on a user-supplied Guid and appends the events in order to the new stream
+        ///  - WILL THROW AN EXCEPTION IF THE STREAM ALREADY EXISTS
+        /// </summary>
+        /// <typeparam name="TAggregate"></typeparam>
+        /// <param name="streamKey">String identifier of this stream</param>
+        /// <param name="events"></param>
+        /// <returns></returns>
+        EventStream StartStream<TAggregate>(string streamKey, params EventWithMetadata[] events) where TAggregate : class, new();
 
         /// <summary>
         /// Creates a new event stream based on a user-supplied Guid and appends the events in order to the new stream - WILL THROW AN EXCEPTION IF THE STREAM ALREADY EXISTS
@@ -68,6 +119,14 @@ namespace Marten.Events
         EventStream StartStream(Guid id, params object[] events);
 
         /// <summary>
+        /// Creates a new event stream based on a user-supplied Guid and appends the events in order to the new stream - WILL THROW AN EXCEPTION IF THE STREAM ALREADY EXISTS
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="events"></param>
+        /// <returns></returns>
+        EventStream StartStream(Guid id, params EventWithMetadata[] events);
+
+        /// <summary>
         /// Creates a new event stream based on a user-supplied Guid and appends the events in order to the new stream
         ///  - WILL THROW AN EXCEPTION IF THE STREAM ALREADY EXISTS
         /// </summary>
@@ -75,6 +134,15 @@ namespace Marten.Events
         /// <param name="events"></param>
         /// <returns></returns>
         EventStream StartStream(string streamKey, params object[] events);
+
+        /// <summary>
+        /// Creates a new event stream based on a user-supplied Guid and appends the events in order to the new stream
+        ///  - WILL THROW AN EXCEPTION IF THE STREAM ALREADY EXISTS
+        /// </summary>
+        /// <param name="streamKey"></param>
+        /// <param name="events"></param>
+        /// <returns></returns>
+        EventStream StartStream(string streamKey, params EventWithMetadata[] events);
 
         /// <summary>
         /// Creates a new event stream, assigns a new Guid id, and appends the events in order to the new stream
@@ -92,7 +160,25 @@ namespace Marten.Events
         /// <typeparam name="TAggregate"></typeparam>
         /// <param name="events"></param>
         /// <returns></returns>
+        EventStream StartStream<TAggregate>(params EventWithMetadata[] events) where TAggregate : class, new();
+
+        /// <summary>
+        /// Creates a new event stream, assigns a new Guid id, and appends the events in order to the new stream
+        ///  - WILL THROW AN EXCEPTION IF THE STREAM ALREADY EXISTS
+        /// </summary>
+        /// <typeparam name="TAggregate"></typeparam>
+        /// <param name="events"></param>
+        /// <returns></returns>
         EventStream StartStream(params object[] events);
+
+        /// <summary>
+        /// Creates a new event stream, assigns a new Guid id, and appends the events in order to the new stream
+        ///  - WILL THROW AN EXCEPTION IF THE STREAM ALREADY EXISTS
+        /// </summary>
+        /// <typeparam name="TAggregate"></typeparam>
+        /// <param name="events"></param>
+        /// <returns></returns>
+        EventStream StartStream(params EventWithMetadata[] events);
 
         /// <summary>
         /// Synchronously fetches all of the events for the named stream

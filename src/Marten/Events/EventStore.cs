@@ -58,45 +58,33 @@ namespace Marten.Events
 
         public EventStream Append(Guid stream, params object[] events)
         {
-            ensureAsGuidStorage();
+            return Append(stream, events.Select(EventStream.ToEvent));
+        }
 
-            EventStream eventStream = null;
-
-            if (_unitOfWork.HasStream(stream))
-            {
-                eventStream = _unitOfWork.StreamFor(stream);
-                eventStream.AddEvents(events.Select(EventStream.ToEvent));
-            }
-            else
-            {
-                eventStream = new EventStream(stream, events.Select(EventStream.ToEvent).ToArray(), false);
-                _unitOfWork.StoreStream(eventStream);
-            }
-
-            return eventStream;
+        public EventStream Append(Guid stream, params EventWithMetadata[] events)
+        {
+            return Append(stream, events.Select(EventStream.ToEvent));
         }
 
         public EventStream Append(string stream, params object[] events)
         {
-            ensureAsStringStorage();
+            return Append(stream, events.Select(EventStream.ToEvent));
+        }
 
-            EventStream eventStream = null;
+        public EventStream Append(string stream, params EventWithMetadata[] events)
+        {
+            return Append(stream, events.Select(EventStream.ToEvent));
+        }
 
-            if (_unitOfWork.HasStream(stream))
-            {
-                eventStream = _unitOfWork.StreamFor(stream);
-                eventStream.AddEvents(events.Select(EventStream.ToEvent));
-            }
-            else
-            {
-                eventStream = new EventStream(stream, events.Select(EventStream.ToEvent).ToArray(), false);
-                _unitOfWork.StoreStream(eventStream);
-            }
+        public EventStream Append(Guid stream, int expectedVersion, params object[] events)
+        {
+            var eventStream = Append(stream, events);
+            eventStream.ExpectedVersionOnServer = expectedVersion;
 
             return eventStream;
         }
 
-        public EventStream Append(Guid stream, int expectedVersion, params object[] events)
+        public EventStream Append(Guid stream, int expectedVersion, params EventWithMetadata[] events)
         {
             var eventStream = Append(stream, events);
             eventStream.ExpectedVersionOnServer = expectedVersion;
@@ -112,13 +100,31 @@ namespace Marten.Events
             return eventStream;
         }
 
+        public EventStream Append(string stream, int expectedVersion, params EventWithMetadata[] events)
+        {
+            var eventStream = Append(stream, events);
+            eventStream.ExpectedVersionOnServer = expectedVersion;
+
+            return eventStream;
+        }
+
         public EventStream StartStream<T>(Guid id, params object[] events) where T : class, new()
         {
-            ensureAsGuidStorage();
+            return StartStream<T>(id, events.Select(EventStream.ToEvent));
+        }
 
-            var stream = new EventStream(id, events.Select(EventStream.ToEvent).ToArray(), true)
+        public EventStream StartStream<T>(Guid id, params EventWithMetadata[] events) where T : class, new()
+        {
+            return StartStream<T>(id, events.Select(EventStream.ToEvent));
+        }
+
+        public EventStream StartStream<TAggregate>(string streamKey, params object[] events) where TAggregate : class, new()
+        {
+            ensureAsStringStorage();
+
+            var stream = new EventStream(streamKey, events.Select(EventStream.ToEvent).ToArray(), true)
             {
-                AggregateType = typeof(T)
+                AggregateType = typeof(TAggregate)
             };
 
             _unitOfWork.StoreStream(stream);
@@ -126,7 +132,7 @@ namespace Marten.Events
             return stream;
         }
 
-        public EventStream StartStream<TAggregate>(string streamKey, params object[] events) where TAggregate : class, new()
+        public EventStream StartStream<TAggregate>(string streamKey, params EventWithMetadata[] events) where TAggregate : class, new()
         {
             ensureAsStringStorage();
 
@@ -162,7 +168,23 @@ namespace Marten.Events
             return stream;
         }
 
+        public EventStream StartStream(string streamKey, params EventWithMetadata[] events)
+        {
+            ensureAsStringStorage();
+
+            var stream = new EventStream(streamKey, events.Select(EventStream.ToEvent).ToArray(), true);
+
+            _unitOfWork.StoreStream(stream);
+
+            return stream;
+        }
+
         public EventStream StartStream<TAggregate>(params object[] events) where TAggregate : class, new()
+        {
+            return StartStream<TAggregate>(Guid.NewGuid(), events);
+        }
+
+        public EventStream StartStream<TAggregate>(params EventWithMetadata[] events) where TAggregate : class, new()
         {
             return StartStream<TAggregate>(Guid.NewGuid(), events);
         }
@@ -170,6 +192,22 @@ namespace Marten.Events
         public EventStream StartStream(params object[] events)
         {
             return StartStream(Guid.NewGuid(), events);
+        }
+
+        public EventStream StartStream(params EventWithMetadata[] events)
+        {
+            return StartStream(Guid.NewGuid(), events);
+        }
+
+        public EventStream StartStream(Guid streamId, params EventWithMetadata[] events)
+        {
+            ensureAsGuidStorage();
+
+            var stream = new EventStream(streamId, events.Select(EventStream.ToEvent).ToArray(), true);
+
+            _unitOfWork.StoreStream(stream);
+
+            return stream;
         }
 
         public IReadOnlyList<IEvent> FetchStream(Guid streamId, int version = 0, DateTime? timestamp = null)
@@ -355,6 +393,60 @@ namespace Marten.Events
 
             var handler = new StreamStateByStringHandler(_store.Events, streamKey, _tenant.TenantId);
             return _connection.FetchAsync(handler, null, null, _tenant, token);
+        }
+
+        private EventStream Append(Guid stream, IEnumerable<IEvent> eventsToInsert)
+        {
+            ensureAsGuidStorage();
+
+            EventStream eventStream;
+
+            if (_unitOfWork.HasStream(stream))
+            {
+                eventStream = _unitOfWork.StreamFor(stream);
+                eventStream.AddEvents(eventsToInsert);
+            }
+            else
+            {
+                eventStream = new EventStream(stream, eventsToInsert.ToArray(), false);
+                _unitOfWork.StoreStream(eventStream);
+            }
+
+            return eventStream;
+        }
+
+        private EventStream Append(string stream, IEnumerable<IEvent> data)
+        {
+            ensureAsStringStorage();
+
+            EventStream eventStream;
+
+            if (_unitOfWork.HasStream(stream))
+            {
+                eventStream = _unitOfWork.StreamFor(stream);
+                eventStream.AddEvents(data);
+            }
+            else
+            {
+                eventStream = new EventStream(stream, data.ToArray(), false);
+                _unitOfWork.StoreStream(eventStream);
+            }
+
+            return eventStream;
+        }
+
+        private EventStream StartStream<T>(Guid id, IEnumerable<IEvent> enumerable) where T : class, new()
+        {
+            ensureAsGuidStorage();
+
+            var stream = new EventStream(id, enumerable.ToArray(), true)
+            {
+                AggregateType = typeof(T)
+            };
+
+            _unitOfWork.StoreStream(stream);
+
+            return stream;
         }
     }
 }

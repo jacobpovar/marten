@@ -16,6 +16,20 @@ namespace Marten.Events
 
             return typeof(Event<>).CloseAndBuildAs<IEvent>(@event, @event.GetType());
         }
+        
+        public static IEvent ToEvent(EventWithMetadata @event)
+        {
+            if (@event == null)
+            {
+                throw new ArgumentNullException(nameof(@event));
+            }
+
+            var closeAndBuildAs = typeof(Event<>).CloseAndBuildAs<IEvent>(@event.Event, @event.Event.GetType());
+            
+            closeAndBuildAs.MetaData = @event.MetaData;
+            
+            return closeAndBuildAs;
+        }
 
         public EventStream(Guid id, bool isNew)
         {
